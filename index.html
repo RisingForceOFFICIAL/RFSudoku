@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="blue">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RFSudoku</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ── Accent Themes ── */
+[data-accent="blue"]{--accent:#0ea5e9;--accent2:#67e8f9;--accent-glow:rgba(14,165,233,0.3)}
+[data-accent="green"]{--accent:#22c55e;--accent2:#86efac;--accent-glow:rgba(34,197,94,0.3)}
+[data-accent="red"]{--accent:#ef4444;--accent2:#fca5a5;--accent-glow:rgba(239,68,68,0.3)}
+[data-accent="orange"]{--accent:#f97316;--accent2:#fdba74;--accent-glow:rgba(249,115,22,0.3)}
+[data-accent="pink"]{--accent:#ec4899;--accent2:#f9a8d4;--accent-glow:rgba(236,72,153,0.3)}
+[data-accent="purple"]{--accent:#a855f7;--accent2:#d8b4fe;--accent-glow:rgba(168,85,247,0.3)}
+[data-accent="yellow"]{--accent:#eab308;--accent2:#fde047;--accent-glow:rgba(234,179,8,0.3)}
+[data-accent="teal"]{--accent:#14b8a6;--accent2:#5eead4;--accent-glow:rgba(20,184,166,0.3)}
+[data-accent="white"]{--accent:#e4e4e7;--accent2:#fff;--accent-glow:rgba(228,228,231,0.3)}
+
+/* ── Dark theme ── */
+[data-theme="dark"]{--bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--cell:#1a1a1a;--border:#333;--border-box:#666;--text:#e0e0e0;--text-dim:#777;--error:#ef4444;--highlight:rgba(14,165,233,0.10);--highlight-match:rgba(103,232,249,0.15);--highlight-select:rgba(14,165,233,0.22);--given:#fff;--user:var(--accent);--note:var(--accent2);--success:#22c55e;--overlay-bg:rgba(0,0,0,.85);--toggle-bg:#333;--toggle-knob:var(--accent);--btn-hover-text:#000;--settings-bg:#161616;--swatch-border:#444}
+
+/* ── Light theme ── */
+[data-theme="light"]{--bg:#f0f2f5;--bg2:#e5e7eb;--bg3:#fff;--cell:#fff;--border:#ccc;--border-box:#888;--text:#1a1a1a;--text-dim:#666;--error:#dc2626;--highlight:rgba(14,165,233,0.08);--highlight-match:rgba(8,145,178,0.12);--highlight-select:rgba(14,165,233,0.16);--given:#111;--user:var(--accent);--note:var(--accent2);--success:#16a34a;--overlay-bg:rgba(255,255,255,.88);--toggle-bg:#ccc;--toggle-knob:var(--accent);--btn-hover-text:#fff;--settings-bg:#f8f8f8;--swatch-border:#bbb}
+
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .35s,color .35s}
+
+/* ── Header ── */
+.header{padding:18px 0 6px;text-align:center;display:flex;align-items:center;justify-content:center;gap:16px;width:100%;max-width:600px;position:relative}
+.logo{font-size:2.2rem;font-weight:800;letter-spacing:-1px}
+.logo .rf{color:var(--accent);transition:color .35s}
+.logo .sudoku{color:var(--text);transition:color .35s}
+
+/* ── Top buttons ── */
+.top-bar{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.icon-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Theme toggle ── */
+.theme-toggle{display:flex;align-items:center;gap:6px;cursor:pointer}
+.toggle-track{width:44px;height:24px;background:var(--toggle-bg);border-radius:12px;position:relative;transition:background .3s;flex-shrink:0}
+.toggle-knob{width:20px;height:20px;background:var(--toggle-knob);border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .3s,background .3s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+[data-theme="light"] .toggle-knob{transform:translateX(20px)}
+
+/* ── Difficulty buttons ── */
+.controls{display:flex;gap:6px;justify-content:center;margin:8px 0;flex-wrap:wrap}
+.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn:hover,.btn:active{background:var(--accent);color:var(--btn-hover-text);border-color:var(--accent)}
+.btn.active{background:var(--accent);color:var(--btn-hover-text);border-color:var(--accent)}
+
+/* ── Stats ── */
+.stats{display:flex;gap:24px;justify-content:center;margin:8px 0;font-size:.95rem;color:var(--text-dim)}
+.stats span{display:flex;align-items:center;gap:5px}
+.stats .label{color:var(--text-dim)}
+.stats .value{color:var(--accent2);font-variant-numeric:tabular-nums;min-width:3ch;transition:color .35s}
+
+/* ── Grid ── */
+.grid-wrap{position:relative;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(9,1fr);border:2.5px solid var(--accent);border-radius:8px;overflow:hidden;width:min(95vw,580px);height:min(95vw,580px);transition:border-color .35s}
+.cell{background:var(--cell);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:clamp(1.5rem,5.5vw,2.4rem);font-weight:300;cursor:pointer;position:relative;transition:background .15s,color .15s,transform .1s,border-color .35s}
+.cell.given{color:var(--given);transition:color .35s}
+.cell.user{color:var(--user)}
+.cell.error{color:var(--error)!important;animation:shake .3s}
+.cell.highlight-row,.cell.highlight-col,.cell.highlight-box{background:var(--highlight)}
+.cell.highlight-select{background:var(--highlight-select)!important}
+.cell.highlight-match{background:var(--highlight-match)}
+.cell.selected{background:var(--highlight-select)!important;box-shadow:inset 0 0 0 2.5px var(--accent);z-index:1}
+
+/* 3×3 box borders */
+.cell:nth-child(3n){border-right:2.5px solid var(--border-box)}
+.cell:nth-child(9n){border-right:none}
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54){border-bottom:2.5px solid var(--border-box)}
+.cell:nth-child(-n+9){border-top:none}
+.cell:nth-child(9n+1){border-left:none}
+.cell:nth-child(n+73){border-bottom:none}
+
+/* Notes */
+.cell .notes{position:absolute;inset:2px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);pointer-events:none}
+.cell .notes span{font-size:clamp(.5rem,1.7vw,.72rem);color:var(--note);display:flex;align-items:center;justify-content:center;font-weight:500;opacity:.9}
+
+/* ── Numpad ── */
+.numpad{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:12px 0;max-width:min(95vw,580px)}
+.numpad .btn{width:clamp(40px,9.5vw,52px);height:clamp(40px,9.5vw,52px);padding:0;font-size:1.25rem;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.numpad .btn.erase{font-size:.78rem;font-weight:600}
+.numpad .btn.notes-toggle{font-size:.65rem;font-weight:600;line-height:1.15}
+.numpad .btn.notes-toggle.active{background:var(--accent2);color:#000;border-color:var(--accent2)}
+
+/* ── Actions ── */
+.actions{display:flex;gap:8px;margin:6px 0 20px}
+
+/* ── Settings Panel ── */
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.settings-overlay.show{opacity:1;pointer-events:all}
+.settings-panel{background:var(--settings-bg);border:1px solid var(--border);border-radius:16px;padding:28px;width:min(90vw,380px);max-height:85vh;overflow-y:auto;animation:popIn .3s}
+.settings-panel h3{font-size:1.3rem;margin-bottom:16px;color:var(--accent);display:flex;align-items:center;justify-content:space-between}
+.settings-panel h3 button{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1.4rem;line-height:1}
+.settings-panel h3 button:hover{color:var(--text)}
+.settings-section{margin-bottom:18px}
+.settings-section label{display:block;font-size:.85rem;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2px solid var(--swatch-border);transition:all .2s;position:relative}
+.swatch:hover{transform:scale(1.15)}
+.swatch.active{border-color:var(--text);box-shadow:0 0 0 3px var(--accent-glow)}
+.swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.theme-row{display:flex;align-items:center;gap:12px}
+.theme-label{font-size:.9rem;color:var(--text)}
+
+/* ── Win Overlay ── */
+.overlay{position:fixed;inset:0;background:var(--overlay-bg);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .4s}
+.overlay.show{opacity:1;pointer-events:all}
+.congrats{text-align:center;animation:popIn .5s ease-out;background:var(--bg3);padding:40px 48px;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.congrats h2{font-size:2.2rem;color:var(--accent);margin-bottom:10px}
+.congrats .time{font-size:1.2rem;color:var(--accent2);margin-bottom:16px}
+.congrats .msg{color:var(--text-dim);margin-bottom:24px;font-size:1rem}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes popIn{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+
+@media(max-width:420px){
+  .header{padding:12px 10px 4px}
+  .logo{font-size:1.7rem}
+  .controls{gap:4px}
+  .btn{padding:5px 10px;font-size:.75rem}
+  .stats{gap:14px;font-size:.84rem}
+  .congrats{padding:28px 24px}
+  .settings-panel{padding:20px}
+  .swatch{width:32px;height:32px}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><span class="rf">RF</span><span class="sudoku">Sudoku</span></div>
+</div>
+
+<div class="top-bar">
+  <div class="theme-toggle" id="themeToggle" title="Light/Dark">
+    <span id="themeIcon">🌙</span>
+    <div class="toggle-track"><div class="toggle-knob"></div></div>
+  </div>
+  <button class="icon-btn" id="settingsBtn" title="Theme Settings">🎨</button>
+</div>
+
+<div class="controls diff-btns" id="diffBtns"></div>
+
+<div class="stats">
+  <span><span class="label">Time</span><span class="value" id="timer">0:00</span></span>
+  <span><span class="label">Errors</span><span class="value" id="errors">0</span></span>
+  <span><span class="label">Left</span><span class="value" id="remaining">0</span></span>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="numpad" id="numpad"></div>
+
+<div class="actions">
+  <button class="btn" id="undoBtn">↩ Undo</button>
+  <button class="btn" id="hintBtn">💡 Hint</button>
+  <button class="btn" id="newBtn">⟳ New</button>
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <h3>🎨 Theme <button id="closeSettings">×</button></h3>
+    <div class="settings-section">
+      <label>Accent Color</label>
+      <div class="swatches" id="accentSwatches"></div>
+    </div>
+    <div class="settings-section">
+      <label>Mode</label>
+      <div class="theme-row">
+        <span class="theme-label">☀️ Light</span>
+        <div class="theme-toggle" id="themeToggle2">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+        </div>
+        <span class="theme-label">🌙 Dark</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Win Overlay -->
+<div class="overlay" id="overlay">
+  <div class="congrats">
+    <h2>🎉 Congratulations!</h2>
+    <p class="time" id="winTime"></p>
+    <p class="msg" id="winMsg">Puzzle solved perfectly!</p>
+    <button class="btn" id="playAgain">Play Again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+const grid = $('#grid'), numpadEl = $('#numpad'), overlay = $('#overlay');
+let board=[], solution=[], given=[], notes=[], selected=-1, difficulty='easy', errors=0, timerSec=0, timerInt=null, notesMode=false, history=[], won=false;
+
+/* ── Difficulty Levels ── */
+const LEVELS = [
+  { id: 'beginner',  label: 'Beginner',  remove: 28, desc: 'Gentle start' },
+  { id: 'easy',      label: 'Easy',      remove: 36, desc: 'Relaxed' },
+  { id: 'medium',    label: 'Medium',    remove: 44, desc: 'Balanced' },
+  { id: 'hard',      label: 'Hard',      remove: 50, desc: 'Challenging' },
+  { id: 'expert',    label: 'Expert',    remove: 54, desc: 'Tough' },
+  { id: 'master',    label: 'Master',    remove: 58, desc: 'Very hard' },
+  { id: 'extreme',   label: 'Extreme',   remove: 60, desc: 'Punishing' },
+  { id: 'insane',    label: 'Insane',    remove: 62, desc: 'Good luck' },
+];
+
+/* ── Accent Colors ── */
+const ACCENTS = [
+  { id: 'blue',   color: '#0ea5e9', label: 'Blue' },
+  { id: 'teal',   color: '#14b8a6', label: 'Teal' },
+  { id: 'green',  color: '#22c55e', label: 'Green' },
+  { id: 'yellow', color: '#eab308', label: 'Yellow' },
+  { id: 'orange', color: '#f97316', label: 'Orange' },
+  { id: 'red',    color: '#ef4444', label: 'Red' },
+  { id: 'pink',   color: '#ec4899', label: 'Pink' },
+  { id: 'purple', color: '#a855f7', label: 'Purple' },
+  { id: 'white',  color: '#e4e4e7', label: 'Mono' },
+];
+
+/* ── Build difficulty buttons ── */
+const diffContainer = $('#diffBtns');
+LEVELS.forEach(lv => {
+  const b = document.createElement('button');
+  b.className = 'btn' + (lv.id === difficulty ? ' active' : '');
+  b.textContent = lv.label;
+  b.title = lv.desc + ' (' + lv.remove + ' cells removed)';
+  b.dataset.diff = lv.id;
+  b.addEventListener('click', () => {
+    diffContainer.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    difficulty = lv.id;
+    newGame();
+  });
+  diffContainer.appendChild(b);
+});
+
+/* ── Build accent swatches ── */
+const swatchContainer = $('#accentSwatches');
+ACCENTS.forEach(a => {
+  const s = document.createElement('div');
+  s.className = 'swatch';
+  s.style.background = a.color;
+  s.title = a.label;
+  s.dataset.accent = a.id;
+  if (a.id === 'blue') s.classList.add('active');
+  s.addEventListener('click', () => {
+    document.documentElement.setAttribute('data-accent', a.id);
+    swatchContainer.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+    s.classList.add('active');
+    localStorage.setItem('rf-sudoku-accent', a.id);
+  });
+  swatchContainer.appendChild(s);
+});
+
+/* ── Theme toggle ── */
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('#themeIcon').textContent = t === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('rf-sudoku-theme', t);
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+}
+$('#themeToggle').addEventListener('click', toggleTheme);
+$('#themeToggle2').addEventListener('click', toggleTheme);
+
+/* ── Settings panel ── */
+$('#settingsBtn').addEventListener('click', () => $('#settingsOverlay').classList.add('show'));
+$('#closeSettings').addEventListener('click', () => $('#settingsOverlay').classList.remove('show'));
+$('#settingsOverlay').addEventListener('click', e => {
+  if (e.target === $('#settingsOverlay')) $('#settingsOverlay').classList.remove('show');
+});
+
+/* ── Restore preferences ── */
+const savedTheme = localStorage.getItem('rf-sudoku-theme');
+if (savedTheme) setTheme(savedTheme);
+const savedAccent = localStorage.getItem('rf-sudoku-accent');
+if (savedAccent) {
+  document.documentElement.setAttribute('data-accent', savedAccent);
+  swatchContainer.querySelectorAll('.swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.accent === savedAccent);
+  });
+}
+
+/* ── Sudoku Engine ── */
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function solveSudoku(b) {
+  const empty = [];
+  for (let i = 0; i < 81; i++) if (b[i] === 0) empty.push(i);
+  function valid(pos, num) {
+    const r = pos / 9 | 0, c = pos % 9;
+    for (let i = 0; i < 9; i++) { if (b[r * 9 + i] === num || b[i * 9 + c] === num) return false; }
+    const sr = (r / 3 | 0) * 3, sc = (c / 3 | 0) * 3;
+    for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) if (b[(sr + dr) * 9 + sc + dc] === num) return false;
+    return true;
+  }
+  function solve(idx) {
+    if (idx === empty.length) return true;
+    const pos = empty[idx], nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    for (const n of nums) { if (valid(pos, n)) { b[pos] = n; if (solve(idx + 1)) return true; b[pos] = 0; } }
+    return false;
+  }
+  return solve(0);
+}
+
+function countSolutions(b, max) {
+  max = max || 2;
+  const empty = [];
+  for (let i = 0; i < 81; i++) if (b[i] === 0) empty.push(i);
+  let count = 0;
+  function valid(pos, num) {
+    const r = pos / 9 | 0, c = pos % 9;
+    for (let i = 0; i < 9; i++) { if (b[r * 9 + i] === num || b[i * 9 + c] === num) return false; }
+    const sr = (r / 3 | 0) * 3, sc = (c / 3 | 0) * 3;
+    for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) if (b[(sr + dr) * 9 + sc + dc] === num) return false;
+    return true;
+  }
+  function solve(idx) {
+    if (count >= max) return;
+    if (idx === empty.length) { count++; return; }
+    const pos = empty[idx];
+    for (let n = 1; n <= 9; n++) { if (valid(pos, n)) { b[pos] = n; solve(idx + 1); b[pos] = 0; } }
+  }
+  solve(0);
+  return count;
+}
+
+function getRemoveCount() {
+  const lv = LEVELS.find(l => l.id === difficulty);
+  return lv ? lv.remove : 36;
+}
+
+function generate() {
+  const b = new Array(81).fill(0);
+  solveSudoku(b);
+  const sol = [...b];
+  const rem = getRemoveCount();
+  const indices = shuffle([...Array(81).keys()]);
+  let removed = 0;
+  for (const i of indices) {
+    if (removed >= rem) break;
+    const v = b[i]; b[i] = 0;
+    const test = [...b];
+    if (countSolutions(test, 2) === 1) { removed++; } else { b[i] = v; }
+  }
+  return { puzzle: b, solution: sol };
+}
+
+/* ── Game Logic ── */
+function newGame() {
+  won = false; errors = 0; timerSec = 0; history = []; notesMode = false;
+  $('#errors').textContent = '0'; updateTimer();
+  clearInterval(timerInt);
+  timerInt = setInterval(() => { if (!won) { timerSec++; updateTimer(); } }, 1000);
+  const g = generate();
+  solution = g.solution; board = [...g.puzzle]; given = g.puzzle.map(v => v !== 0);
+  notes = Array.from({ length: 81 }, () => new Set());
+  selected = -1;
+  renderGrid(); updateNotesBtn(); updateRemaining();
+  overlay.classList.remove('show');
+}
+
+function updateTimer() {
+  const m = timerSec / 60 | 0, s = timerSec % 60;
+  $('#timer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateRemaining() {
+  const left = board.filter(v => v === 0).length;
+  $('#remaining').textContent = left;
+}
+
+function renderGrid() {
+  grid.innerHTML = '';
+  for (let i = 0; i < 81; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.idx = i;
+    if (given[i]) {
+      cell.classList.add('given');
+      cell.textContent = board[i];
+    } else if (board[i]) {
+      cell.classList.add('user');
+      if (board[i] !== solution[i]) cell.classList.add('error');
+      cell.textContent = board[i];
+    } else if (notes[i].size) {
+      const nd = document.createElement('div');
+      nd.className = 'notes';
+      for (let n = 1; n <= 9; n++) {
+        const s = document.createElement('span');
+        s.textContent = notes[i].has(n) ? n : '';
+        nd.appendChild(s);
+      }
+      cell.appendChild(nd);
+    }
+    cell.addEventListener('click', () => selectCell(i));
+    grid.appendChild(cell);
+  }
+  highlightCells();
+}
+
+function selectCell(i) { selected = i; highlightCells(); }
+
+function highlightCells() {
+  const cells = grid.children;
+  const sr = selected >= 0 ? selected / 9 | 0 : -1, sc = selected >= 0 ? selected % 9 : -1;
+  const sbr = (sr / 3 | 0) * 3, sbc = (sc / 3 | 0) * 3;
+  const selVal = selected >= 0 ? board[selected] : 0;
+  for (let i = 0; i < 81; i++) {
+    const c = cells[i], r = i / 9 | 0, col = i % 9, br = (r / 3 | 0) * 3, bc = (col / 3 | 0) * 3;
+    c.classList.remove('selected', 'highlight-row', 'highlight-col', 'highlight-box', 'highlight-select', 'highlight-match');
+    if (selected < 0) continue;
+    if (i === selected) c.classList.add('selected');
+    else if (r === sr) c.classList.add('highlight-row');
+    else if (col === sc) c.classList.add('highlight-col');
+    else if (br === sbr && bc === sbc) c.classList.add('highlight-box');
+    if (selVal && board[i] === selVal && i !== selected) c.classList.add('highlight-match');
+  }
+}
+
+function inputNumber(n) {
+  if (selected < 0 || given[selected] || won) return;
+  if (notesMode && n > 0) {
+    if (board[selected]) return;
+    history.push({ idx: selected, val: board[selected], notes: new Set(notes[selected]) });
+    if (notes[selected].has(n)) notes[selected].delete(n); else notes[selected].add(n);
+    renderGrid(); return;
+  }
+  history.push({ idx: selected, val: board[selected], notes: new Set(notes[selected]) });
+  board[selected] = n; notes[selected].clear();
+  if (n && n !== solution[selected]) { errors++; $('#errors').textContent = errors; }
+  if (n) {
+    const r = selected / 9 | 0, c = selected % 9, br = (r / 3 | 0) * 3, bc = (c / 3 | 0) * 3;
+    for (let i = 0; i < 9; i++) { notes[r * 9 + i].delete(n); notes[i * 9 + c].delete(n); }
+    for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) notes[(br + dr) * 9 + bc + dc].delete(n);
+  }
+  renderGrid(); updateRemaining(); checkWin();
+}
+
+function erase() {
+  if (selected < 0 || given[selected] || won) return;
+  history.push({ idx: selected, val: board[selected], notes: new Set(notes[selected]) });
+  board[selected] = 0; notes[selected].clear();
+  renderGrid(); updateRemaining();
+}
+
+function undo() {
+  if (!history.length || won) return;
+  const h = history.pop();
+  board[h.idx] = h.val; notes[h.idx] = h.notes;
+  renderGrid(); updateRemaining();
+}
+
+function hint() {
+  if (won) return;
+  const empties = [];
+  for (let i = 0; i < 81; i++) if (board[i] === 0) empties.push(i);
+  if (!empties.length) return;
+  const idx = empties[Math.random() * empties.length | 0];
+  history.push({ idx, val: board[idx], notes: new Set(notes[idx]) });
+  board[idx] = solution[idx]; notes[idx].clear(); given[idx] = true;
+  selected = idx;
+  renderGrid(); updateRemaining(); checkWin();
+}
+
+function checkWin() {
+  for (let i = 0; i < 81; i++) if (board[i] !== solution[i]) return;
+  won = true; clearInterval(timerInt);
+  const m = timerSec / 60 | 0, s = timerSec % 60;
+  const lv = LEVELS.find(l => l.id === difficulty);
+  $('#winTime').textContent = `${lv ? lv.label : difficulty} · ${m}:${s < 10 ? '0' : ''}${s} · ${errors} error${errors !== 1 ? 's' : ''}`;
+  const msgs = ['Puzzle solved!', 'Nailed it! 🧠', 'Big brain energy! 💪', 'Clean solve! ✨', 'You crushed it! 🔥'];
+  $('#winMsg').textContent = msgs[Math.random() * msgs.length | 0];
+  setTimeout(() => overlay.classList.add('show'), 400);
+}
+
+/* ── Build numpad ── */
+for (let n = 1; n <= 9; n++) {
+  const b = document.createElement('button');
+  b.className = 'btn'; b.textContent = n;
+  b.addEventListener('click', () => inputNumber(n));
+  numpadEl.appendChild(b);
+}
+const eraseBtn = document.createElement('button');
+eraseBtn.className = 'btn erase'; eraseBtn.textContent = '⌫';
+eraseBtn.addEventListener('click', () => inputNumber(0));
+numpadEl.appendChild(eraseBtn);
+const notesBtn = document.createElement('button');
+notesBtn.className = 'btn notes-toggle'; notesBtn.innerHTML = '✏️<br>Notes';
+notesBtn.addEventListener('click', () => { notesMode = !notesMode; updateNotesBtn(); });
+numpadEl.appendChild(notesBtn);
+function updateNotesBtn() { notesBtn.classList.toggle('active', notesMode); }
+
+/* ── Button handlers ── */
+$('#undoBtn').addEventListener('click', undo);
+$('#hintBtn').addEventListener('click', hint);
+$('#newBtn').addEventListener('click', newGame);
+$('#playAgain').addEventListener('click', newGame);
+
+/* ── Keyboard ── */
+document.addEventListener('keydown', e => {
+  if (e.key >= '1' && e.key <= '9') inputNumber(+e.key);
+  else if (e.key === 'Backspace' || e.key === 'Delete') inputNumber(0);
+  else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
+  else if (e.key === 'ArrowUp' && selected >= 9) selectCell(selected - 9);
+  else if (e.key === 'ArrowDown' && selected < 72) selectCell(selected + 9);
+  else if (e.key === 'ArrowLeft' && selected % 9 > 0) selectCell(selected - 1);
+  else if (e.key === 'ArrowRight' && selected % 9 < 8) selectCell(selected + 1);
+  else if (e.key === 'n' || e.key === 'N') { notesMode = !notesMode; updateNotesBtn(); }
+});
+
+/* ── Start ── */
+newGame();
+})();
+</script>
+</body>
+</html>
